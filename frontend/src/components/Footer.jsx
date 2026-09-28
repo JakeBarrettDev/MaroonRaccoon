@@ -27,6 +27,7 @@ export default function Footer() {
           © {new Date().getFullYear()} Maroon Raccoon — hand-built websites, no templates.
         </p>
       </div>
+      <div className="footer-giant" aria-hidden="true">Maroon Raccoon</div>
     </footer>
   );
 }

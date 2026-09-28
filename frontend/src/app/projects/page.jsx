@@ -1,4 +1,5 @@
 import PageHero from "@/components/PageHero";
+import ProjectArt from "@/components/ProjectArt";
 
 const statusStyles = {
   "Shipped": "status-shipped",
@@ -12,19 +13,22 @@ export default function ProjectsPage() {
       title: "Swesso, the Art Discovery app",
       description: "Swesso is an innovative art discovery app designed to connect users with new and exciting artworks. The app enhances the art exploration experience through personalized recommendations and interactive features.",
       status: "Shipped",
-      timeline: "Live now"
+      timeline: "Live now",
+      art: "swesso"
     },
     {
       title: "Jeff Conners Art",
       description: "Jeff Conners Art is a personal portfolio showcasing the artistic works of Jeff Conners. The website provides an immersive experience for art enthusiasts and potential clients.",
       status: "Shipped",
-      timeline: "Live now"
+      timeline: "Live now",
+      art: "jeffconners"
     },
     {
       title: "Tetrad",
       description: "Tetrad is a business devoted to quality construction and fiber optic solutions. Their website will reflect their commitment to excellence and innovation in the construction industry.",
       status: "Planning",
-      timeline: "Q1 2026"
+      timeline: "Q1 2026",
+      art: "tetrad"
     }
   ];
 
@@ -41,7 +45,8 @@ export default function ProjectsPage() {
 
       <div className="projects-grid">
         {projects.map((project) => (
-          <div key={project.title} className="card card-hover">
+          <div key={project.title} className="card card-hover project-card">
+            <ProjectArt name={project.art} />
             <div className={`project-status-badge ${statusStyles[project.status] ?? "status-planning"}`}>
               {project.status}
             </div>
@@ -60,7 +65,7 @@ export default function ProjectsPage() {
           You could be next on this list.
         </p>
         <a href="/contact" className="cta-button">
-          Let's Work Together
+          Let&apos;s Work Together
         </a>
       </div>
     </main>

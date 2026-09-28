@@ -103,14 +103,19 @@ export default function HowItWorks() {
                             <span className="step-number">{index + 1}</span> {step.title}
                         </div>
 
-                        <Image
-                            src={step.img}
-                            alt={step.alt}
-                            width={400}
-                            height={400}
-                            className="hitw-img"
-                            priority={index === 0}
-                        />
+                        <div className="browser-frame">
+                            <div className="browser-bar" aria-hidden="true">
+                                <span /><span /><span />
+                            </div>
+                            <Image
+                                src={step.img}
+                                alt={step.alt}
+                                width={600}
+                                height={400}
+                                className="hitw-img"
+                                priority={index === 0}
+                            />
+                        </div>
 
                         <div style={{ color: "var(--text-muted)", lineHeight: "1.6", fontSize: "1.1rem", marginTop: "1rem" }}>
                             {step.text}

@@ -1,3 +1,9 @@
+const stats = [
+  { value: "2", label: "projects shipped" },
+  { value: "0", label: "templates used" },
+  { value: "1", label: "very dedicated raccoon" },
+];
+
 export default function AboutSection() {
   return (
     <div style={{ maxWidth: "760px", margin: "0 auto", textAlign: "center" }}>
@@ -26,6 +32,15 @@ export default function AboutSection() {
           we can talk through next steps.
         </p>
       </div>
+
+      <dl className="stat-row">
+        {stats.map((stat) => (
+          <div key={stat.label} className="stat">
+            <dt className="stat-label">{stat.label}</dt>
+            <dd className="stat-value">{stat.value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
