@@ -1,6 +1,13 @@
 import PageHero from "@/components/PageHero";
 import ProjectArt from "@/components/ProjectArt";
 
+export const metadata = {
+  title: "Projects & Portfolio",
+  description:
+    "Websites and apps built by Maroon Raccoon, including the Swesso art discovery app and the Jeff Conners Art portfolio. See what's shipped and what's in the works.",
+  alternates: { canonical: "/projects" },
+};
+
 const statusStyles = {
   "Shipped": "status-shipped",
   "In Development": "status-progress",

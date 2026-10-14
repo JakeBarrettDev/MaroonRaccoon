@@ -2,6 +2,13 @@ import PageHero from "../../components/PageHero";
 import Link from "next/link";
 import Image from "next/image";
 
+export const metadata = {
+  title: "Web Design & Development Services",
+  description:
+    "Custom small business websites, high-converting landing pages and website refreshes from Maroon Raccoon. Hand-built, mobile-first, SEO-ready, with transparent pricing.",
+  alternates: { canonical: "/services" },
+};
+
 const icons = {
   website: (
     <>
