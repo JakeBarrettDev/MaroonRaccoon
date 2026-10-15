@@ -1,3 +1,5 @@
 .DS_Store
 # Source art (large originals); optimized copies live in frontend/public
 design/packet-source/
+# Raw AI-editor outputs; imported versions live in frontend/public/models/faces
+design/packet-faces/gpt/

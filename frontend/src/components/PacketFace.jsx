@@ -5,11 +5,9 @@ import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
 // Expression art, painted over his face. Packet's own painted face shows when none is active.
-const FACES = {
-  wink: "/models/faces/wink.png",
-  happy: "/models/faces/happy.png",
-  worried: "/models/faces/worried.png",
-};
+const FACES = Object.fromEntries(
+  ["blink", "determined", "happy", "sad", "sleepy", "surprise", "wink"].map((name) => [name, `/models/faces/${name}.webp`])
+);
 
 // Where the art sits, as fractions of the rigid head's bounding box (bind pose):
 // cx/cy centre, w/h size, lift = how far it floats off the surface.
@@ -65,6 +63,7 @@ function buildFaceGeometry(skinned, headBone, rect) {
   const down = new THREE.Vector3(0, 0, -1);
   const positions = [];
   const uvs = [];
+  const colors = [];
   for (let j = 0; j <= SEGMENTS; j++) {
     for (let i = 0; i <= SEGMENTS; i++) {
       const u = i / SEGMENTS;
@@ -76,6 +75,10 @@ function buildFaceGeometry(skinned, headBone, rect) {
       p.applyMatrix4(toBone);
       positions.push(p.x, p.y, p.z);
       uvs.push(u, w);
+      // Fade out where the head curves away from the front: projected straight on, the art
+      // would smear into streaks there, and his own painted face already matches.
+      const facing = hit ? Math.abs(hit.face.normal.z) : 0;
+      colors.push(1, 1, 1, THREE.MathUtils.smoothstep(facing, 0.35, 0.65));
     }
   }
   const indices = [];
@@ -92,6 +95,7 @@ function buildFaceGeometry(skinned, headBone, rect) {
   const out = new THREE.BufferGeometry();
   out.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
   out.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  out.setAttribute("color", new THREE.Float32BufferAttribute(colors, 4));
   out.setIndex(indices);
   out.computeVertexNormals();
   return out;
@@ -109,6 +113,7 @@ export default function PacketFace({ skinned, head, expression }) {
   const material = useRef(null);
   const forced = useRef(null);
   const cap = useRef(1);
+  const shown = useRef(null);
   const camera = useThree((state) => state.camera);
 
   useEffect(() => () => geometry.dispose(), [geometry]);
@@ -135,8 +140,12 @@ export default function PacketFace({ skinned, head, expression }) {
       mat.map = textures[want];
       mat.needsUpdate = true;
     }
-    mat.opacity += ((want ? cap.current : 0) - mat.opacity) * (1 - Math.exp(-delta * 14));
+    const goal = want ? cap.current : 0;
+    // Blinks snap; everything else eases in and out.
+    if (want === "blink" || shown.current === "blink") mat.opacity = goal;
+    else mat.opacity += (goal - mat.opacity) * (1 - Math.exp(-delta * 14));
     mat.visible = mat.opacity > 0.01;
+    shown.current = want;
   });
 
   return createPortal(
@@ -144,6 +153,7 @@ export default function PacketFace({ skinned, head, expression }) {
       <meshStandardMaterial
         ref={material}
         transparent
+        vertexColors
         opacity={0}
         roughness={0.75}
         metalness={0}

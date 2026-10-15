@@ -7,7 +7,8 @@
 //   node design/packet-pipeline/gpt_faces.mjs import <edited.png> <name>
 //     Finds the face in the editor's output (it may have shifted or rescaled it), lines it
 //     back up with the template, colour-matches it to Packet's real face, removes the
-//     green, feathers the edge and writes frontend/public/models/faces/<name>.png.
+//     green, feathers the edge and writes frontend/public/models/faces/<name>.webp.
+import { mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
@@ -29,16 +30,68 @@ async function rgba(input) {
   return { data, width: info.width, height: info.height };
 }
 
-// Bounding box of "face" pixels, ignoring rows/columns with only a few stray hits.
+// Bounding box of "face" pixels, ignoring rows/columns with only a sliver of hits
+// (editors leave faint lines and fringes along the canvas edges).
 function faceBox({ data, width, height }, isFace) {
   const rows = new Array(height).fill(0);
   const cols = new Array(width).fill(0);
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
     if (isFace(data, (y * width + x) * 4)) { rows[y]++; cols[x]++; }
   }
-  const first = (arr) => arr.findIndex((n) => n > 3);
-  const last = (arr) => arr.length - 1 - [...arr].reverse().findIndex((n) => n > 3);
-  return { x0: first(cols), x1: last(cols), y0: first(rows), y1: last(rows) };
+  const first = (arr, min) => arr.findIndex((n) => n > min);
+  const last = (arr, min) => arr.length - 1 - [...arr].reverse().findIndex((n) => n > min);
+  const rowMin = width * 0.03, colMin = height * 0.03;
+  return { x0: first(cols, colMin), x1: last(cols, colMin), y0: first(rows, rowMin), y1: last(rows, rowMin) };
+}
+
+// Coarse colour classes, so the template and an edit can be compared despite small
+// tone shifts: 0 background, 1 white fur, 2 red fur, 3 dark (eye masks, nose), 4 other.
+function classify(r, g, b, a = 255) {
+  if (a < 128 || isGreen(r, g, b)) return 0;
+  if (r > 170 && g > 170 && b > 170) return 1;
+  if (r > 100 && r > g * 1.8 && r > b * 1.5) return 2;
+  if (Math.max(r, g, b) < 80) return 3;
+  return 4;
+}
+
+// Refine the bounding-box guess by searching position and scale for the best agreement
+// with the template's colour classes (fur, markings and outline the edit didn't change).
+function align(tpl, src, guess) {
+  const STEP = 3; // sample every 3rd template pixel
+  const samples = [];
+  for (let y = 0; y < tpl.height; y += STEP) for (let x = 0; x < tpl.width; x += STEP) {
+    const o = (y * tpl.width + x) * 4;
+    samples.push(x + 0.5, y + 0.5, classify(tpl.data[o], tpl.data[o + 1], tpl.data[o + 2], tpl.data[o + 3]));
+  }
+  const srcClass = new Uint8Array(src.width * src.height);
+  for (let i = 0; i < srcClass.length; i++) srcClass[i] = classify(src.data[i * 4], src.data[i * 4 + 1], src.data[i * 4 + 2]);
+  const score = ({ left, top, sx, sy }) => {
+    let hit = 0;
+    for (let i = 0; i < samples.length; i += 3) {
+      const gx = Math.round(left + samples[i] * sx), gy = Math.round(top + samples[i + 1] * sy);
+      const c = gx >= 0 && gy >= 0 && gx < src.width && gy < src.height ? srcClass[gy * src.width + gx] : 0;
+      if (c === samples[i + 2]) hit++;
+    }
+    return hit / (samples.length / 3);
+  };
+  let best = { ...guess };
+  let bestScore = score(best);
+  const steps = { left: 24, top: 24, sx: 0.06, sy: 0.06 };
+  for (let round = 0; round < 7; round++) {
+    let improved = true;
+    while (improved) {
+      improved = false;
+      for (const key of Object.keys(steps)) {
+        for (const dir of [-1, 1]) {
+          const trial = { ...best, [key]: best[key] + dir * steps[key] };
+          const s = score(trial);
+          if (s > bestScore) { best = trial; bestScore = s; improved = true; }
+        }
+      }
+    }
+    for (const key of Object.keys(steps)) steps[key] /= 2;
+  }
+  return { ...best, score: bestScore, guessScore: score(guess) };
 }
 
 async function pad() {
@@ -58,14 +111,17 @@ async function importFace(input, name) {
   const { width: W, height: H } = tpl;
   const src = await rgba(input);
 
-  // Line up: the face's bounding box in the edit corresponds to the template's.
+  // Line up: start from the bounding boxes, then refine against the template's markings.
   const t = faceBox(tpl, (d, o) => d[o + 3] > 128);
   const g = faceBox(src, (d, o) => !isGreen(d[o], d[o + 1], d[o + 2]));
-  const sx = (g.x1 - g.x0) / (t.x1 - t.x0);
-  const sy = (g.y1 - g.y0) / (t.y1 - t.y0);
-  const left = g.x0 - t.x0 * sx;
-  const top = g.y0 - t.y0 * sy;
-  console.log(`face found at ${g.x0},${g.y0}-${g.x1},${g.y1}; scale ${sx.toFixed(3)} x ${sy.toFixed(3)}`);
+  const gsx = (g.x1 - g.x0) / (t.x1 - t.x0);
+  const gsy = (g.y1 - g.y0) / (t.y1 - t.y0);
+  const fit = align(tpl, src, { left: g.x0 - t.x0 * gsx, top: g.y0 - t.y0 * gsy, sx: gsx, sy: gsy });
+  const { left, top, sx, sy } = fit;
+  console.log(
+    `aligned: scale ${sx.toFixed(3)} x ${sy.toFixed(3)}, offset ${left.toFixed(0)},${top.toFixed(0)}; ` +
+      `match ${(fit.guessScore * 100).toFixed(1)}% -> ${(fit.score * 100).toFixed(1)}%`
+  );
 
   // Resample the edit into the template frame (bilinear).
   const out = Buffer.alloc(W * H * 4);
@@ -85,15 +141,17 @@ async function importFace(input, name) {
   // Feathered mask: inside the template's silhouette, fading out toward its edge.
   const alpha = Buffer.alloc(W * H);
   for (let i = 0; i < W * H; i++) alpha[i] = tpl.data[i * 4 + 3];
-  const blurred = await sharp(alpha, { raw: { width: W, height: H, channels: 1 } }).blur(FEATHER / 2).raw().toBuffer();
+  const blurred = await sharp(alpha, { raw: { width: W, height: H, channels: 1 } }).blur(FEATHER / 2).extractChannel(0).raw().toBuffer();
   const feather = (i) => Math.max(0, Math.min(1, (blurred[i] / 255 - 0.5) * 2.2)) * (alpha[i] / 255);
 
-  // Colour-match against the template in the edge band, where the art should be unchanged.
+  // Colour-match against the template wherever both show the same fur (white or red), so
+  // changed features and any stray background can't skew it.
   const sum = { src: [0, 0, 0], tpl: [0, 0, 0], n: 0 };
   for (let i = 0; i < W * H; i++) {
-    const f = feather(i);
-    if (alpha[i] > 250 && f > 0.05 && f < 0.95) {
-      for (let c = 0; c < 3; c++) { sum.src[c] += out[i * 4 + c]; sum.tpl[c] += tpl.data[i * 4 + c]; }
+    const o = i * 4;
+    const tc = classify(tpl.data[o], tpl.data[o + 1], tpl.data[o + 2], tpl.data[o + 3]);
+    if ((tc === 1 || tc === 2) && classify(out[o], out[o + 1], out[o + 2]) === tc) {
+      for (let c = 0; c < 3; c++) { sum.src[c] += out[o + c]; sum.tpl[c] += tpl.data[o + c]; }
       sum.n++;
     }
   }
@@ -110,8 +168,9 @@ async function importFace(input, name) {
     out[o + 2] = Math.min(255, Math.round(b * gain[2]));
     out[o + 3] = Math.round(255 * keyed * feather(i));
   }
-  const dest = `${FACES_DIR}${name}.png`;
-  await sharp(out, { raw: { width: W, height: H, channels: 4 } }).png().toFile(dest);
+  mkdirSync(FACES_DIR, { recursive: true });
+  const dest = `${FACES_DIR}${name}.webp`;
+  await sharp(out, { raw: { width: W, height: H, channels: 4 } }).webp({ quality: 90, alphaQuality: 100 }).toFile(dest);
   console.log(`wrote ${dest}`);
 }
 

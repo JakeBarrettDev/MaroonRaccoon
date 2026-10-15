@@ -24,6 +24,12 @@ const GLANCE_LOOK = { x: 1.0, y: 0.15 }; // in cursor units, i.e. past the edge 
 const GLANCE_BODY_YAW = 0.25; // radians of upper-body turn per cursor unit
 const GLANCE_QUIET = 1.5; // seconds the mouse must be still first
 
+// Expressions beyond the wave and glance.
+const SURPRISE_FOR = 0.7; // seconds of surprise when caught looking away or woken up
+const SLEEPY_AFTER = 30; // seconds without the mouse moving before he gets drowsy
+const BLINK_EVERY = [2.5, 6]; // seconds between blinks
+const BLINK_FOR = 0.13; // seconds the eyes stay shut
+
 const between = ([min, max]) => min + Math.random() * (max - min);
 
 // Meshy's idle holds the hands palms-out with the thumbs pointing sideways. Twist each arm
@@ -78,6 +84,7 @@ function Packet({ onReady }) {
   const trickTimer = useRef(0);
   const glance = useRef({ active: false, side: 1, at: 0, until: 0, blend: 0, lastMove: 0 });
   const expression = useRef(null);
+  const mood = useRef({ surpriseUntil: 0, ctaHover: false, blinkAt: 0, blinkUntil: 0 });
   const canvas = useThree((state) => state.gl.domElement);
 
   // Normalise size and position so the model fills the stage regardless of export scale.
@@ -150,7 +157,10 @@ function Packet({ onReady }) {
     // Measured from Packet himself (like the medallion tilt), not the window center.
     const onMove = (event) => {
       const g = glance.current;
-      g.lastMove = performance.now() / 1000;
+      const now = performance.now() / 1000;
+      // Caught him looking away, or woke him up.
+      if (g.active || (g.lastMove && now - g.lastMove > SLEEPY_AFTER)) mood.current.surpriseUntil = now + SURPRISE_FOR;
+      g.lastMove = now;
       if (g.active) {
         g.active = false;
         g.at = g.lastMove + between(GLANCE_EVERY);
@@ -159,8 +169,18 @@ function Packet({ onReady }) {
       pointer.current.x = clamp((event.clientX - (rect.left + rect.width / 2)) / (window.innerWidth / 2));
       pointer.current.y = clamp((event.clientY - (rect.top + rect.height * 0.3)) / (window.innerHeight / 2));
     };
+    // He looks determined while you size up the "Start a project" button.
+    const onOver = (event) => {
+      mood.current.ctaHover = Boolean(event.target.closest?.(".cta-button"));
+    };
     window.addEventListener("pointermove", onMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onMove);
+    window.addEventListener("pointerdown", onMove, { passive: true });
+    document.addEventListener("pointerover", onOver, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerdown", onMove);
+      document.removeEventListener("pointerover", onOver);
+    };
   }, [canvas]);
 
   const wave = (event) => {
@@ -185,9 +205,13 @@ function Packet({ onReady }) {
     const now = performance.now() / 1000;
     const g = glance.current;
     const waving = actions[WAVE]?.isRunning();
-    if (!g.at) g.at = now + between([6, 9]);
+    if (!g.at) {
+      g.at = now + between([6, 9]);
+      g.lastMove = now;
+    }
+    const sleepy = now - g.lastMove > SLEEPY_AFTER;
     if (!g.active && now >= g.at) {
-      if (!waving && now - g.lastMove > GLANCE_QUIET) {
+      if (!waving && !sleepy && now - g.lastMove > GLANCE_QUIET) {
         g.active = true;
         g.side = Math.random() < 0.5 ? -1 : 1;
         g.until = now + between(GLANCE_HOLD);
@@ -201,14 +225,20 @@ function Packet({ onReady }) {
     }
     g.blend += ((g.active ? 1 : 0) - g.blend) * (1 - Math.exp(-delta * 3));
 
+    const m = mood.current;
+    if (!m.blinkAt) m.blinkAt = now + between(BLINK_EVERY);
+    if (now >= m.blinkAt) {
+      m.blinkUntil = now + BLINK_FOR;
+      m.blinkAt = now + between(BLINK_EVERY);
+    }
     const hello = actions[WAVE];
-    expression.current = waving
-      ? hello.time < WINK_UNTIL
-        ? "wink"
-        : "happy"
-      : g.blend > 0.5
-        ? "worried"
-        : null;
+    if (waving) expression.current = hello.time < WINK_UNTIL ? "wink" : "happy";
+    else if (now < m.surpriseUntil) expression.current = "surprise";
+    else if (m.ctaHover) expression.current = "determined";
+    else if (g.blend > 0.5) expression.current = "sad";
+    else if (sleepy) expression.current = "sleepy";
+    else if (now < m.blinkUntil) expression.current = "blink";
+    else expression.current = null;
 
     const target = g.active ? { x: g.side * GLANCE_LOOK.x, y: GLANCE_LOOK.y } : pointer.current;
     // Turning away is lazier than tracking the cursor.
