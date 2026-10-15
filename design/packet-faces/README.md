@@ -9,8 +9,22 @@ uses (1024 x 509). Anything painted on it lands on the same spot on his head.
    the outer border untouched so the overlay blends invisibly into the model.
 3. Export a PNG at 1024 x 509. Transparency outside the face is fine.
 
-With an AI image editor: upload the template and ask it to "edit only the eyes and mouth
-to <expression>; keep every other pixel, the framing and the canvas size identical".
+### With ChatGPT (or another AI image editor)
+ChatGPT can't return 1024 x 509, and it tends to nudge things when editing, so use
+`face-template-gpt.png` instead: the same face on a flat green 1536 x 1024 canvas.
+
+1. Start a fresh edit from `face-template-gpt.png` for each expression (don't chain edits).
+2. Save the result here, e.g. `design/packet-faces/wink-gpt.png`.
+3. Import it, which re-aligns, colour-matches, removes the green and feathers the edge:
+   `node design/packet-pipeline/gpt_faces.mjs import design/packet-faces/wink-gpt.png wink`
+
+Prompt (swap in the expression line):
+
+> Edit this image. It is a flattened cartoon raccoon face on a flat green background.
+> Keep the canvas 1536x1024, keep the green background, and keep the face exactly the
+> same size and position. Do not redraw the fur, the red and white markings, the dark
+> eye-mask shapes, the nose or the outer outline. Only change the eyes and the mouth, in
+> the same flat cartoon style, line weight and colours. Expression: <EXPRESSION>.
 
 ## Wanted
 - `wink.png`: one eye closed in a happy arc, smiling mouth (start of the wave)
