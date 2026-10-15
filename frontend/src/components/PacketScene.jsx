@@ -39,6 +39,9 @@ const localTurn = new THREE.Quaternion();
 const twist = new THREE.Quaternion();
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
+// Fit per loaded scene; see the measurement in Packet.
+const fits = new WeakMap();
+
 // Rotate a bone by a world-space rotation, layered on top of whatever the mixer posed.
 function applyWorldTurn(bone, worldTurn) {
   bone.parent.getWorldQuaternion(parentQuat);
@@ -109,16 +112,18 @@ function Packet({ onReady }) {
         if (name === `mixamorig${bone}`) found[bone] = obj;
       }
     });
-    scene.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(scene);
-    const size = box.getSize(new THREE.Vector3());
-    const scale = 2.75 / size.y;
-    const center = box.getCenter(new THREE.Vector3());
-    return {
-      bones: found,
+    // useGLTF caches the scene and the fit is applied to it as a transform, so a second
+    // measurement (after navigating away and back) would shrink it again. Measure once.
+    if (!fits.has(scene)) {
+      scene.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(scene);
+      const size = box.getSize(new THREE.Vector3());
+      const scale = 2.75 / size.y;
+      const center = box.getCenter(new THREE.Vector3());
       // Feet land on the medallion's CSS ground shadow.
-      fit: { scale, x: -center.x * scale, y: -box.min.y * scale - 1.38, z: -center.z * scale },
-    };
+      fits.set(scene, { scale, x: -center.x * scale, y: -box.min.y * scale - 1.38, z: -center.z * scale });
+    }
+    return { bones: found, fit: fits.get(scene) };
   }, [scene]);
 
   useEffect(() => {
