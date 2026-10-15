@@ -2,12 +2,31 @@
 
 import { useState } from "react";
 import { useForm, ValidationError } from "@formspree/react";
+import { site } from "@/lib/site";
+
+const projectTypes = [
+  "Small business website",
+  "Landing page",
+  "Fixes + refresh",
+  "Web app",
+  "Something else",
+];
+
+const budgets = ["Under $1,000", "$1,000–$2,500", "$2,500+", "Not sure yet"];
+
+const nextSteps = [
+  "I reply with a few questions, usually within a day.",
+  "We have a quick call about your goals.",
+  "You get a fixed price and timeline before any work starts.",
+];
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     subject: "",
+    projectType: "",
+    budget: "",
     message: ""
   });
 
@@ -41,7 +60,8 @@ export default function ContactForm() {
   }
 
   return (
-    <main style={{ padding: "4rem 2rem", maxWidth: "700px", margin: "0 auto" }}>
+    <main className="contact-page">
+      <div className="contact-main">
       <span className="eyebrow">Contact</span>
       <h1>
         Let&apos;s build <span className="accent">something.</span>
@@ -105,6 +125,28 @@ export default function ContactForm() {
           />
         </div>
 
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="projectType">Project type</label>
+            <select id="projectType" name="projectType" value={formData.projectType} onChange={handleChange}>
+              <option value="">Choose one…</option>
+              {projectTypes.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="budget">Budget</label>
+            <select id="budget" name="budget" value={formData.budget} onChange={handleChange}>
+              <option value="">Choose one…</option>
+              {budgets.map((budget) => (
+                <option key={budget}>{budget}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div className="form-field">
           <label htmlFor="message">Message *</label>
           <textarea
@@ -135,6 +177,25 @@ export default function ContactForm() {
         {/* General (non-field-specific) errors */}
         <ValidationError errors={state.errors} />
       </form>
+      </div>
+
+      <aside className="contact-aside card">
+        <h2>What happens next</h2>
+        <ol className="contact-steps">
+          {nextSteps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+
+        <h2>Rather email?</h2>
+        <p>
+          <a href={`mailto:${site.email}`}>{site.email}</a>
+        </p>
+        <p className="contact-links">
+          <a href={site.founder.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          <a href={site.founder.github} target="_blank" rel="noopener noreferrer">GitHub</a>
+        </p>
+      </aside>
     </main>
   );
 }

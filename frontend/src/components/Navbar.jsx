@@ -2,7 +2,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { motion, useScroll, useSpring } from "framer-motion";
 
 const links = [
   { href: "/#about", label: "About" },
@@ -13,8 +12,6 @@ const links = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { scrollYProgress } = useScroll();
-  const progress = useSpring(scrollYProgress, { stiffness: 220, damping: 30, restDelta: 0.001 });
 
   return (
     <header className="navbar">
@@ -47,7 +44,6 @@ export default function Navbar() {
           })}
         </nav>
       </div>
-      <motion.div className="scroll-progress" style={{ scaleX: progress }} aria-hidden="true" />
     </header>
   );
 }

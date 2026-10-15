@@ -15,7 +15,7 @@ export const site = {
   legalName: "", // e.g. "Maroon Raccoon LLC" — match your state filing exactly
   description:
     "Maroon Raccoon designs and builds fast, modern, hand-built websites and web apps for small businesses and creatives — no templates, no runaround, no surprise costs.",
-  email: "",
+  email: "maroonraccoondev@gmail.com",
   areaServed: "United States",
   founder: {
     name: "Jake Barrett",

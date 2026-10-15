@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { site } from "@/lib/site";
 
 export default function Footer() {
   return (
@@ -22,6 +23,12 @@ export default function Footer() {
           <Link href="/projects">Projects</Link>
           <Link href="/contact">Contact</Link>
         </nav>
+
+        <div className="footer-contact">
+          <a href={`mailto:${site.email}`}>{site.email}</a>
+          <a href={site.founder.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          <a href={site.founder.github} target="_blank" rel="noopener noreferrer">GitHub</a>
+        </div>
 
         <p className="footer-copy">
           © {new Date().getFullYear()} Maroon Raccoon — hand-built websites, no templates.

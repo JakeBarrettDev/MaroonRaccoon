@@ -19,25 +19,23 @@ export default function ProjectsPage() {
   const projects = [
     {
       title: "Swesso, the Art Discovery app",
-      description: "Swesso is an innovative art discovery app designed to connect users with new and exciting artworks. The app enhances the art exploration experience through personalized recommendations and interactive features.",
+      description: "An art discovery app that teaches you about art, and about your own taste along the way. Built for anyone who has ever left a museum wanting more.",
       status: "Shipped",
       timeline: "Live now",
       art: "swesso"
     },
     {
       title: "Jeff Conners Art",
-      description: "Jeff Conners Art is a personal portfolio showcasing the artistic works of Jeff Conners. The website provides an immersive experience for art enthusiasts and potential clients.",
+      description: "The online gallery of Kansas City artist Jeff Conners, showcasing his original work.",
       status: "Shipped",
       timeline: "Live now",
       art: "jeffconners"
     },
-    {
-      title: "Tetrad",
-      description: "Tetrad is a business devoted to quality construction and fiber optic solutions. Their website will reflect their commitment to excellence and innovation in the construction industry.",
-      status: "Planning",
-      timeline: "Q1 2026",
-      art: "tetrad"
-    }
+  ];
+
+  // Not built yet, so it gets a line instead of a card.
+  const upcoming = [
+    { title: "Tetrad", blurb: "a site for a construction and fiber optic company" },
   ];
 
   return (
@@ -61,11 +59,22 @@ export default function ProjectsPage() {
             <h3 className="project-title">{project.title}</h3>
             <p className="project-description">{project.description}</p>
             <div className="project-timeline">
-              {project.status === "Shipped" ? project.timeline : `Expected: ${project.timeline}`}
+              {project.timeline}
             </div>
           </div>
         ))}
       </div>
+
+      {upcoming.length > 0 && (
+        <p className="projects-upcoming">
+          <span className="eyebrow">Coming up</span>
+          {upcoming.map((item) => (
+            <span key={item.title}>
+              <strong>{item.title}</strong>, {item.blurb}
+            </span>
+          ))}
+        </p>
+      )}
 
       <div className="cta-section">
         <h2 style={{ marginBottom: "1rem" }}>Ready to start your project?</h2>

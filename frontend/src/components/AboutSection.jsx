@@ -1,7 +1,7 @@
 const stats = [
-  { value: "2", label: "projects shipped" },
-  { value: "0", label: "templates used" },
-  { value: "1", label: "very dedicated raccoon" },
+  { value: "2 wks", label: "typical turnaround" },
+  { value: "$0", label: "required monthly fees" },
+  { value: "100%", label: "yours: code, domain, accounts" },
 ];
 
 export default function AboutSection() {

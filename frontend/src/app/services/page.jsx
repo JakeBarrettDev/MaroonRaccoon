@@ -28,6 +28,33 @@ const icons = {
   ),
 };
 
+const faqs = [
+  {
+    q: "Who owns the website?",
+    a: "You do: the domain, the site, and every third-party account it uses. You're never locked into me or a long-term contract.",
+  },
+  {
+    q: "Are there monthly fees?",
+    a: "No required ones. Sites are built to run on modern, low-cost hosting, so most clients only pay for their domain (about $10–20 a year). Ongoing support is optional at $75/month.",
+  },
+  {
+    q: "How long does it take?",
+    a: "Most sites go live in about two weeks, and within three. The biggest factor is how quickly content and feedback come in.",
+  },
+  {
+    q: "Can I update the site myself?",
+    a: "Yes. Add a content management system (from $150) and you can edit text and images without touching code. Or send changes my way on the support plan.",
+  },
+  {
+    q: "What isn't included in the starter package?",
+    a: "Online stores, payment processing, and complex web apps. Add-ons cover most of it: e-commerce from $200, social feeds and event calendars from $100 each. Anything else is quoted before work begins.",
+  },
+  {
+    q: "What if I need changes after launch?",
+    a: "Small updates are covered by the support plan. Bigger changes are quoted up front, so you always know the cost before any work starts.",
+  },
+];
+
 export default function ServicesPage() {
   const services = [
     {
@@ -37,7 +64,7 @@ export default function ServicesPage() {
       price: "$1,000",
       wasPrice: "$1,250",
       priceNote: "launch pricing",
-      timeline: "Live in 2–4 weeks",
+      timeline: "Live in 2–3 weeks",
       features: [
         "Home + Services + Contact",
         "Mobile-first + fast loading",
@@ -49,8 +76,8 @@ export default function ServicesPage() {
       title: "Landing Page",
       icon: "landing",
       description: "One focused page built to convert visitors into calls, bookings, or messages.",
-      price: "Quoted up front",
-      timeline: "Fixed price before work starts",
+      price: "$500",
+      timeline: "Live in 1–2 weeks",
       features: [
         "Clear CTA + contact form",
         "Perfect for ads or promos",
@@ -126,6 +153,20 @@ export default function ServicesPage() {
           Optional support &amp; maintenance is $75/month after launch — no
           long-term contract, cancel anytime.
         </p>
+
+        <section className="faq" aria-labelledby="faq-heading">
+          <div className="section-head">
+            <h2 id="faq-heading">Common questions</h2>
+          </div>
+          <div className="faq-list">
+            {faqs.map((item) => (
+              <details key={item.q} className="faq-item">
+                <summary>{item.q}</summary>
+                <p>{item.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
 
         {/* PDF Download Section */}
         <div className="cta-section">

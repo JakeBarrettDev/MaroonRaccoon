@@ -54,8 +54,8 @@ export default function Hero() {
           </motion.h1>
 
           <motion.p className="lede" {...fadeUp(0.55)}>
-            I design and build fast, modern sites for small businesses and
-            creatives — no templates, no runaround, no surprise costs.
+            Custom websites for small businesses and creatives. Live in 3
+            weeks, from $500, and you own everything.
           </motion.p>
 
           <motion.div className="button-row" {...fadeUp(0.7)}>
