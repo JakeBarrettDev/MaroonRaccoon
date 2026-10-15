@@ -7,15 +7,27 @@ import * as THREE from "three";
 export const PACKET_URL = "/models/packet.glb";
 
 const IDLE = "Idle_9";
-const TRICKS = ["Running", "Walking"];
-const TRICK_MS = 1600;
+const WAVE = "Wave_One_Hand";
+const WAVE_BLEND = 0.4;
 // Radians at full cursor deflection, split between neck and head so only the head turns.
 const LOOK_YAW = 0.55;
 const LOOK_PITCH = 0.22;
 const LOOK_SPLIT = { Neck: 0.4, Head: 0.6 };
 
-// Meshy's idle holds the hands palms-up; twist them in around the forearm (bone Y) axis.
-const HAND_TWIST = -1.1;
+// Every so often while idling he gets distracted and glances off-screen, turning his
+// shoulders a little too. Moving the mouse snaps his attention back.
+const GLANCE_EVERY = [9, 15]; // seconds between glances
+const GLANCE_HOLD = [1.8, 2.8]; // seconds spent looking away
+const GLANCE_LOOK = { x: 1.0, y: 0.15 }; // in cursor units, i.e. past the edge of the screen
+const GLANCE_BODY_YAW = 0.25; // radians of upper-body turn per cursor unit
+const GLANCE_QUIET = 1.5; // seconds the mouse must be still first
+
+const between = ([min, max]) => min + Math.random() * (max - min);
+
+// Meshy's idle holds the hands palms-out with the thumbs pointing sideways. Twist each arm
+// around its forearm (bone Y) axis until the thumbs face forward. The idle poses the hands
+// asymmetrically, hence separate values; the twist is split between forearm and wrist.
+const pose = { left: 1.6, right: -1.1 };
 
 // Colour grade for the baked texture, which skews orange-red with grey, pinkish whites.
 const GRADE = { redDepth: 0.83, redGreen: 0.35, redBlue: 0.08, whiteLift: 0.25 };
@@ -59,7 +71,7 @@ function Packet({ onReady }) {
   const pointer = useRef({ x: 0, y: 0 });
   const look = useRef({ x: 0, y: 0 });
   const trickTimer = useRef(0);
-  const trickIndex = useRef(0);
+  const glance = useRef({ active: false, side: 1, at: 0, until: 0, blend: 0, lastMove: 0 });
   const canvas = useThree((state) => state.gl.domElement);
 
   // Normalise size and position so the model fills the stage regardless of export scale.
@@ -93,7 +105,7 @@ function Packet({ onReady }) {
         mat.needsUpdate = true;
       }
       const name = obj.name.replace("mixamorig:", "mixamorig");
-      for (const bone of ["Neck", "Head", "LeftHand", "RightHand"]) {
+      for (const bone of ["Spine2", "Neck", "Head", "LeftForeArm", "LeftHand", "RightForeArm", "RightHand"]) {
         if (name === `mixamorig${bone}`) found[bone] = obj;
       }
     });
@@ -127,6 +139,12 @@ function Packet({ onReady }) {
     const clamp = (value) => Math.max(-1, Math.min(1, value));
     // Measured from Packet himself (like the medallion tilt), not the window center.
     const onMove = (event) => {
+      const g = glance.current;
+      g.lastMove = performance.now() / 1000;
+      if (g.active) {
+        g.active = false;
+        g.at = g.lastMove + between(GLANCE_EVERY);
+      }
       const rect = canvas.getBoundingClientRect();
       pointer.current.x = clamp((event.clientX - (rect.left + rect.width / 2)) / (window.innerWidth / 2));
       pointer.current.y = clamp((event.clientY - (rect.top + rect.height * 0.3)) / (window.innerHeight / 2));
@@ -135,27 +153,55 @@ function Packet({ onReady }) {
     return () => window.removeEventListener("pointermove", onMove);
   }, [canvas]);
 
-  const doTrick = (event) => {
+  const wave = (event) => {
     event.stopPropagation();
     const idle = actions[IDLE];
-    const name = TRICKS[trickIndex.current++ % TRICKS.length];
-    const trick = actions[name];
-    if (!idle || !trick || trick.isRunning()) return;
-    trick.reset().setLoop(THREE.LoopRepeat, Infinity).play();
-    idle.crossFadeTo(trick, 0.25, false);
+    const hello = actions[WAVE];
+    if (!idle || !hello || hello.isRunning()) return;
+    hello.reset().setLoop(THREE.LoopOnce, 1).play();
+    idle.crossFadeTo(hello, 0.3, false);
     clearTimeout(trickTimer.current);
+    // Start blending back to idle just before the wave ends.
+    const ms = (hello.getClip().duration - WAVE_BLEND) * 1000;
     trickTimer.current = setTimeout(() => {
       idle.reset().play();
-      trick.crossFadeTo(idle, 0.35, false);
-      trickTimer.current = setTimeout(() => trick.stop(), 400);
-    }, TRICK_MS);
+      hello.crossFadeTo(idle, WAVE_BLEND, false);
+      trickTimer.current = setTimeout(() => hello.stop(), WAVE_BLEND * 1000 + 50);
+    }, ms);
   };
 
   // Runs after the animation mixer each frame, so these corrections layer on top of the pose.
   useFrame((_, delta) => {
-    const ease = 1 - Math.exp(-delta * 5);
-    look.current.x += (pointer.current.x - look.current.x) * ease;
-    look.current.y += (pointer.current.y - look.current.y) * ease;
+    const now = performance.now() / 1000;
+    const g = glance.current;
+    const waving = actions[WAVE]?.isRunning();
+    if (!g.at) g.at = now + between([6, 9]);
+    if (!g.active && now >= g.at) {
+      if (!waving && now - g.lastMove > GLANCE_QUIET) {
+        g.active = true;
+        g.side = Math.random() < 0.5 ? -1 : 1;
+        g.until = now + between(GLANCE_HOLD);
+      } else {
+        g.at = now + 2; // busy; try again shortly
+      }
+    }
+    if (g.active && (now >= g.until || waving)) {
+      g.active = false;
+      g.at = now + between(GLANCE_EVERY);
+    }
+    g.blend += ((g.active ? 1 : 0) - g.blend) * (1 - Math.exp(-delta * 3));
+
+    const target = g.active ? { x: g.side * GLANCE_LOOK.x, y: GLANCE_LOOK.y } : pointer.current;
+    // Turning away is lazier than tracking the cursor.
+    const ease = 1 - Math.exp(-delta * (g.active ? 2.5 : 5));
+    look.current.x += (target.x - look.current.x) * ease;
+    look.current.y += (target.y - look.current.y) * ease;
+
+    // Upper body first, so the neck and head turns below build on the new chest angle.
+    if (bones.Spine2 && g.blend > 0.001) {
+      turnEuler.set(0, look.current.x * GLANCE_BODY_YAW * g.blend, 0, "YXZ");
+      applyWorldTurn(bones.Spine2, turn.setFromEuler(turnEuler));
+    }
 
     for (const [name, share] of Object.entries(LOOK_SPLIT)) {
       const bone = bones[name];
@@ -165,18 +211,21 @@ function Packet({ onReady }) {
       applyWorldTurn(bone, turn.setFromEuler(turnEuler));
     }
 
-    // Only while idling (fading with it), so the run and walk keep their own hand motion.
-    const amount = HAND_TWIST * (actions[IDLE]?.getEffectiveWeight() ?? 0);
-    if (amount) {
-      bones.LeftHand?.quaternion.multiply(twist.setFromAxisAngle(Y_AXIS, amount));
-      bones.RightHand?.quaternion.multiply(twist.setFromAxisAngle(Y_AXIS, -amount));
+    // Only while idling (fading with it), so the wave keeps its own hand motion.
+    const weight = actions[IDLE]?.getEffectiveWeight() ?? 0;
+    if (weight) {
+      for (const [side, angle] of [["Left", pose.left], ["Right", pose.right]]) {
+        const half = (angle * weight) / 2;
+        bones[`${side}ForeArm`]?.quaternion.multiply(twist.setFromAxisAngle(Y_AXIS, half));
+        bones[`${side}Hand`]?.quaternion.multiply(twist.setFromAxisAngle(Y_AXIS, half));
+      }
     }
   });
 
   return (
     <group
       ref={group}
-      onClick={doTrick}
+      onClick={wave}
       onPointerOver={() => (document.body.style.cursor = "pointer")}
       onPointerOut={() => (document.body.style.cursor = "")}
     >
