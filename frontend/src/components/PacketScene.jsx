@@ -3,12 +3,14 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useAnimations, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import PacketFace from "./PacketFace";
 
 export const PACKET_URL = "/models/packet.glb";
 
 const IDLE = "Idle_9";
 const WAVE = "Wave_One_Hand";
 const WAVE_BLEND = 0.4;
+const WINK_UNTIL = 1.4; // seconds into the wave before the wink turns into a big smile
 // Radians at full cursor deflection, split between neck and head so only the head turns.
 const LOOK_YAW = 0.55;
 const LOOK_PITCH = 0.22;
@@ -75,11 +77,13 @@ function Packet({ onReady }) {
   const look = useRef({ x: 0, y: 0 });
   const trickTimer = useRef(0);
   const glance = useRef({ active: false, side: 1, at: 0, until: 0, blend: 0, lastMove: 0 });
+  const expression = useRef(null);
   const canvas = useThree((state) => state.gl.domElement);
 
   // Normalise size and position so the model fills the stage regardless of export scale.
-  const { fit, bones } = useMemo(() => {
+  const { fit, bones, skinned } = useMemo(() => {
     const found = {};
+    let skinnedMesh = null;
     const grade = {
       uRedDepth: { value: GRADE.redDepth },
       uRedGreen: { value: GRADE.redGreen },
@@ -88,6 +92,7 @@ function Packet({ onReady }) {
     };
     scene.traverse((obj) => {
       if (obj.isSkinnedMesh) {
+        skinnedMesh = obj;
         obj.frustumCulled = false;
         const mat = obj.material;
         // The export leaves metalness unset, which glTF treats as fully metallic: with
@@ -123,7 +128,7 @@ function Packet({ onReady }) {
       // Feet land on the medallion's CSS ground shadow.
       fits.set(scene, { scale, x: -center.x * scale, y: -box.min.y * scale - 1.38, z: -center.z * scale });
     }
-    return { bones: found, fit: fits.get(scene) };
+    return { bones: found, skinned: skinnedMesh, fit: fits.get(scene) };
   }, [scene]);
 
   useEffect(() => {
@@ -196,6 +201,15 @@ function Packet({ onReady }) {
     }
     g.blend += ((g.active ? 1 : 0) - g.blend) * (1 - Math.exp(-delta * 3));
 
+    const hello = actions[WAVE];
+    expression.current = waving
+      ? hello.time < WINK_UNTIL
+        ? "wink"
+        : "happy"
+      : g.blend > 0.5
+        ? "worried"
+        : null;
+
     const target = g.active ? { x: g.side * GLANCE_LOOK.x, y: GLANCE_LOOK.y } : pointer.current;
     // Turning away is lazier than tracking the cursor.
     const ease = 1 - Math.exp(-delta * (g.active ? 2.5 : 5));
@@ -235,6 +249,11 @@ function Packet({ onReady }) {
       onPointerOut={() => (document.body.style.cursor = "")}
     >
       <primitive object={scene} scale={fit.scale} position={[fit.x, fit.y, fit.z]} />
+      {skinned && bones.Head && (
+        <Suspense fallback={null}>
+          <PacketFace skinned={skinned} head={bones.Head} expression={expression} />
+        </Suspense>
+      )}
     </group>
   );
 }
