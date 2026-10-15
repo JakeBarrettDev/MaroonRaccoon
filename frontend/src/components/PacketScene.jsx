@@ -35,7 +35,7 @@ const between = ([min, max]) => min + Math.random() * (max - min);
 // Meshy's idle holds the hands palms-out with the thumbs pointing sideways. Twist each arm
 // around its forearm (bone Y) axis until the thumbs face forward. The idle poses the hands
 // asymmetrically, hence separate values; the twist is split between forearm and wrist.
-const pose = { left: 1.6, right: -1.1 };
+const pose = { left: 1.6, right: -1.1, waveOut: -0.7, waveForward: 0.7 };
 
 // Colour grade for the baked texture, which skews orange-red with grey, pinkish whites.
 const GRADE = { redDepth: 0.83, redGreen: 0.35, redBlue: 0.08, whiteLift: 0.25 };
@@ -120,7 +120,7 @@ function Packet({ onReady }) {
         mat.needsUpdate = true;
       }
       const name = obj.name.replace("mixamorig:", "mixamorig");
-      for (const bone of ["Spine2", "Neck", "Head", "LeftForeArm", "LeftHand", "RightForeArm", "RightHand"]) {
+      for (const bone of ["Spine2", "Neck", "Head", "LeftArm", "LeftForeArm", "LeftHand", "RightArm", "RightForeArm", "RightHand"]) {
         if (name === `mixamorig${bone}`) found[bone] = obj;
       }
     });
@@ -135,7 +135,11 @@ function Packet({ onReady }) {
       // Feet land on the medallion's CSS ground shadow.
       fits.set(scene, { scale, x: -center.x * scale, y: -box.min.y * scale - 1.38, z: -center.z * scale });
     }
-    return { bones: found, skinned: skinnedMesh, fit: fits.get(scene) };
+    return {
+      bones: found,
+      skinned: skinnedMesh,
+      fit: fits.get(scene),
+    };
   }, [scene]);
 
   useEffect(() => {
@@ -261,6 +265,15 @@ function Packet({ onReady }) {
     }
 
     // Only while idling (fading with it), so the wave keeps its own hand motion.
+    // Meshy's wave was made for a normal-sized head; on Packet the hand sweeps through his
+    // cheek, and his arms are too short to reach past it. So while waving, swing the arm out
+    // from his side and forward, so the paw waves in front of his cheek instead of inside it.
+    const waveWeight = actions[WAVE]?.getEffectiveWeight() ?? 0;
+    if (waveWeight && bones.RightArm) {
+      turnEuler.set(pose.waveForward * waveWeight, 0, pose.waveOut * waveWeight, "XYZ");
+      applyWorldTurn(bones.RightArm, turn.setFromEuler(turnEuler));
+    }
+
     const weight = actions[IDLE]?.getEffectiveWeight() ?? 0;
     if (weight) {
       for (const [side, angle] of [["Left", pose.left], ["Right", pose.right]]) {

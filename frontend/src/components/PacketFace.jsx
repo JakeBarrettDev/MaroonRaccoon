@@ -64,6 +64,7 @@ function buildFaceGeometry(skinned, headBone, rect) {
   const positions = [];
   const uvs = [];
   const colors = [];
+  const depth = []; // hit depth per grid point, or null where the ray missed the head
   for (let j = 0; j <= SEGMENTS; j++) {
     for (let i = 0; i <= SEGMENTS; i++) {
       const u = i / SEGMENTS;
@@ -78,15 +79,25 @@ function buildFaceGeometry(skinned, headBone, rect) {
       // Fade out where the head curves away from the front: projected straight on, the art
       // would smear into streaks there, and his own painted face already matches.
       const facing = hit ? Math.abs(hit.face.normal.z) : 0;
-      colors.push(1, 1, 1, THREE.MathUtils.smoothstep(facing, 0.35, 0.65));
+      const alpha = THREE.MathUtils.smoothstep(facing, 0.35, 0.65);
+      colors.push(1, 1, 1, alpha);
+      depth.push(hit && alpha > 0.01 ? hit.point.z : null);
     }
   }
+  // Skip triangles that touch a missed ray or span a depth jump (e.g. cheek to ear): they
+  // would stretch the art into spikes ("whiskers") around the edge of the face.
+  const maxStep = (3 * Math.max(width, height)) / SEGMENTS;
+  const solid = (...ks) => {
+    const zs = ks.map((k) => depth[k]);
+    return zs.every((z) => z !== null) && Math.max(...zs) - Math.min(...zs) < maxStep;
+  };
   const indices = [];
   const row = SEGMENTS + 1;
   for (let j = 0; j < SEGMENTS; j++) {
     for (let i = 0; i < SEGMENTS; i++) {
       const k = j * row + i;
-      indices.push(k, k + 1, k + row, k + 1, k + row + 1, k + row);
+      if (solid(k, k + 1, k + row)) indices.push(k, k + 1, k + row);
+      if (solid(k + 1, k + row + 1, k + row)) indices.push(k + 1, k + row + 1, k + row);
     }
   }
   front.dispose();
