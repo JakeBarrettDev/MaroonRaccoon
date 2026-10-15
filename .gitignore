@@ -1,0 +1,3 @@
+.DS_Store
+# Source art (large originals); optimized copies live in frontend/public
+design/packet-source/

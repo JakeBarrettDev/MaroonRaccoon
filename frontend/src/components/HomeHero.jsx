@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import LogoMedallion from "./LogoMedallion";
+import PacketHero from "./PacketHero";
 
 const plainWords = ["Hand-built", "websites", "with"];
 const accentWords = ["actual", "bite."];
@@ -74,7 +74,7 @@ export default function Hero() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
-          <LogoMedallion />
+          <PacketHero />
         </motion.div>
       </div>
     </section>

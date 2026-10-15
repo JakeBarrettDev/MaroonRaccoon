@@ -17,7 +17,7 @@ function sideColor(index) {
   return `hsl(0 70% ${lightness}%)`;
 }
 
-export default function LogoMedallion() {
+export default function LogoMedallion({ label = "Maroon Raccoon logo", children }) {
   const sceneRef = useRef(null);
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function LogoMedallion() {
   }, []);
 
   return (
-    <div ref={sceneRef} className="medallion-scene" role="img" aria-label="Maroon Raccoon logo">
+    <div ref={sceneRef} className="medallion-scene" role="img" aria-label={label}>
       <div className="medallion-glow" aria-hidden="true" />
 
       <svg className="medallion-orbit" viewBox="0 0 100 100" aria-hidden="true">
@@ -111,6 +111,8 @@ export default function LogoMedallion() {
           />
         </div>
       </div>
+
+      {children}
 
       {glyphs.map((glyph) => (
         <span
