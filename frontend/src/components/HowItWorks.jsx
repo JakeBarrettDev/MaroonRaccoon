@@ -140,8 +140,8 @@ export default function HowItWorks() {
             </div>
 
             <div style={{ marginTop: "2rem"}}>
-                <Link href="/contact" style={{ textDecoration: "underline" }}>
-                    Ready to get started? Contact me →
+                <Link href="/contact" className="cta-button">
+                    Get a quote
                 </Link>
             </div>
         </div>

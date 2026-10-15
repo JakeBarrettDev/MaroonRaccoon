@@ -34,6 +34,10 @@ export default function ServicesPage() {
       title: "Small Business Website",
       icon: "website",
       description: "A modern multi-page site that looks great on mobile and is easy to maintain.",
+      price: "$1,000",
+      wasPrice: "$1,250",
+      priceNote: "launch pricing",
+      timeline: "Live in 2–4 weeks",
       features: [
         "Home + Services + Contact",
         "Mobile-first + fast loading",
@@ -45,6 +49,8 @@ export default function ServicesPage() {
       title: "Landing Page",
       icon: "landing",
       description: "One focused page built to convert visitors into calls, bookings, or messages.",
+      price: "Quoted up front",
+      timeline: "Fixed price before work starts",
       features: [
         "Clear CTA + contact form",
         "Perfect for ads or promos",
@@ -56,6 +62,8 @@ export default function ServicesPage() {
       title: "Fixes + Refresh",
       icon: "refresh",
       description: "Clean up an existing site: mobile issues, layout problems, speed, and polish.",
+      price: "Quoted up front",
+      timeline: "Fixed price before work starts",
       features: [
         "Quick turnaround",
         "Prioritized improvements",
@@ -71,7 +79,7 @@ export default function ServicesPage() {
         eyebrow="What I offer"
         title="Services"
         subtitle="Clear options, transparent pricing, and a smooth process."
-        primaryCtaLabel="Get a Quote"
+        primaryCtaLabel="Get a quote"
         primaryCtaHref="/contact"
         image="/services/PacketConsultant_Transparent.png"
         imageAlt="Packet has many services for your website needs!"
@@ -98,6 +106,12 @@ export default function ServicesPage() {
                 </svg>
               </div>
               <h3 className="service-title">{service.title}</h3>
+              <p className="service-price">
+                {service.wasPrice && <s className="service-was">{service.wasPrice}</s>}
+                <strong>{service.price}</strong>
+                {service.priceNote && <span className="service-price-note">{service.priceNote}</span>}
+              </p>
+              <p className="service-timeline">{service.timeline}</p>
               <p className="service-description">{service.description}</p>
               <ul className="service-features">
                 {service.features.map((feature, i) => (
@@ -107,6 +121,11 @@ export default function ServicesPage() {
             </div>
           ))}
         </div>
+
+        <p className="services-footnote">
+          Optional support &amp; maintenance is $75/month after launch — no
+          long-term contract, cancel anytime.
+        </p>
 
         {/* PDF Download Section */}
         <div className="cta-section">

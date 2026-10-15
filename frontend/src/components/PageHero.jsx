@@ -5,7 +5,7 @@ export default function PageHero({
   eyebrow = null,
   title,
   subtitle,
-  primaryCtaLabel = "Contact",
+  primaryCtaLabel = "Get a quote",
   primaryCtaHref = "/contact",
   image = null,
   imageAlt = "",

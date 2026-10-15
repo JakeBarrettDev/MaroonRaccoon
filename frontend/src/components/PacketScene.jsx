@@ -198,7 +198,7 @@ function Packet({ onReady }) {
       pointer.current.x = clamp((event.clientX - (rect.left + rect.width / 2)) / (window.innerWidth / 2));
       pointer.current.y = clamp((event.clientY - (rect.top + rect.height * 0.3)) / (window.innerHeight / 2));
     };
-    // He looks determined while you size up the "Start a project" button.
+    // He looks determined while you size up the "Get a quote" button.
     const onOver = (event) => {
       mood.current.ctaHover = Boolean(event.target.closest?.(".cta-button"));
     };

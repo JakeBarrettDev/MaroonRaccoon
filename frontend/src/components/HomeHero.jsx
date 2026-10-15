@@ -60,7 +60,7 @@ export default function Hero() {
 
           <motion.div className="button-row" {...fadeUp(0.7)}>
             <Link href="/contact" className="cta-button">
-              Start a project
+              Get a quote
             </Link>
             <Link href="/projects" className="btn-ghost">
               See my work →

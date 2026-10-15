@@ -1,3 +1,4 @@
+import Link from "next/link";
 import PageHero from "@/components/PageHero";
 import ProjectArt from "@/components/ProjectArt";
 
@@ -71,9 +72,9 @@ export default function ProjectsPage() {
         <p style={{ fontSize: "1.2rem", marginBottom: "1.5rem" }}>
           You could be next on this list.
         </p>
-        <a href="/contact" className="cta-button">
-          Let&apos;s Work Together
-        </a>
+        <Link href="/contact" className="cta-button">
+          Get a quote
+        </Link>
       </div>
     </main>
   );
