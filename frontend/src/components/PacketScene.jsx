@@ -268,7 +268,9 @@ function Packet({ onReady }) {
     // Meshy's wave was made for a normal-sized head; on Packet the hand sweeps through his
     // cheek, and his arms are too short to reach past it. So while waving, swing the arm out
     // from his side and forward, so the paw waves in front of his cheek instead of inside it.
-    const waveWeight = actions[WAVE]?.getEffectiveWeight() ?? 0;
+    // Only while the wave is actually playing: three.js reports a weight of 1 for an action
+    // that has never been started, which would leave the arm raised from page load.
+    const waveWeight = waving ? actions[WAVE].getEffectiveWeight() : 0;
     if (waveWeight && bones.RightArm) {
       turnEuler.set(pose.waveForward * waveWeight, 0, pose.waveOut * waveWeight, "XYZ");
       applyWorldTurn(bones.RightArm, turn.setFromEuler(turnEuler));
